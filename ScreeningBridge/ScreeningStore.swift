@@ -82,9 +82,10 @@ final class ScreeningStore {
     var liveCatalog: LiveCatalog?
     var catalogError: String?
     var recoveryReason: String?
+    var recoveryInputField: String?
     var activeRequestID: String?
     var allowedCategories: Set<String> {
-        get { Set(draft.allowedPartnerCategories ?? SampleContent.partners.map(\.category)) }
+        get { Set(draft.allowedPartnerCategories ?? PartnerCategory.allCases.map { $0.display.label }) }
         set { draft.allowedPartnerCategories = newValue.sorted() }
     }
     @ObservationIgnored let repository: LocalPlanRepository
@@ -117,12 +118,29 @@ final class ScreeningStore {
     var hasCurrentResults: Bool { !draft.isLive || draft.researchFingerprint == briefFingerprint }
     func partner(_ id: String) -> Partner? { (draft.partnerSnapshots ?? (draft.isLive ? [] : SampleContent.partners)).first { $0.id == id } }
 
+    func applyFilters(radius: Int, categories: Set<String>) {
+        draft.radius = radius; allowedCategories = categories
+        if draft.isLive {
+            // Retain eligible selections until the new result set arrives.
+            if !path.isEmpty { path[path.count - 1] = .research }
+        } else {
+            draft.selectedIDs.formIntersection(visiblePartners.map(\.id))
+            if visiblePartners.isEmpty, !path.isEmpty { path[path.count - 1] = .recovery(.noMatches) }
+        }
+        persistDraft()
+    }
+
     func setDiscoveryMode(_ mode: String) {
         guard (mode == "live") != draft.isLive else { return }
         activeRequestID = nil
         draft = ScreeningDraft()
         draft.discoveryMode = mode
-        if mode == "live" { draft.cinema = ""; draft.area = "" }
+        if mode == "live" {
+            draft.cinema = ""; draft.area = ""
+            var calendar = Calendar.current
+            calendar.timeZone = TimeZone(identifier: "America/New_York")!
+            draft.date = calendar.date(from: DateComponents(year: 2026, month: 10, day: 30, hour: 19)) ?? Date()
+        }
         catalogError = nil; recoveryReason = nil
         persistDraft()
     }
@@ -137,7 +155,9 @@ final class ScreeningStore {
                 draft.venueTimezone = venue.timezone
             }
         } catch is CancellationError { return }
-        catch { catalogError = error.localizedDescription }
+        catch {
+            catalogError = error.localizedDescription
+        }
     }
 
     func runSearch() async {
@@ -155,9 +175,8 @@ final class ScreeningStore {
         draft.briefRevision = (draft.briefRevision ?? 0) + 1
         let revision = draft.briefRevision!
         let fingerprint = briefFingerprint
-        let categoryIDs = ["Bookshop": "bookshop", "Record shop": "record_shop", "Ceramics studio": "ceramics_studio"]
-        let request = LiveRequest(requestId: id, briefRevision: revision, film: film, venue: venue, screeningAt: ISO8601DateFormatter().string(from: draft.date), radiusM: Int((Double(draft.radius) * 1609.344).rounded()), categories: allowedCategories.compactMap { categoryIDs[$0] }.sorted(), notes: draft.notes)
-        stage = 0; recoveryReason = nil
+        let request = LiveRequest(requestId: id, briefRevision: revision, film: film, venue: venue, screeningAt: ISO8601DateFormatter().string(from: draft.date), radiusM: Int((Double(draft.radius) * 1609.344).rounded()), categories: allowedCategories.compactMap { PartnerCategory.fromLabel($0)?.rawValue }.sorted(), notes: draft.notes)
+        stage = 0; recoveryReason = nil; recoveryInputField = nil
         persistDraft()
         do {
             try await discoveryService.discover(request) { [self] event in
@@ -166,10 +185,11 @@ final class ScreeningStore {
                 if event.type == "progress" {
                     stage = ["resolving": 0, "researching": 1, "ranking": 2, "preparing": 3][event.stage ?? ""] ?? stage
                 } else if event.type == "completed" {
-                    guard let rows = event.recommendations, (1...3).contains(rows.count), let sources = event.sources else { throw DiscoveryClientError.invalidResponse }
+                    guard let rows = event.recommendations, (1...3).contains(rows.count), let sources = event.sources, let rawJSON = event.rawJSON else { throw DiscoveryClientError.invalidResponse }
                     let partners = try rows.map { try $0.partner(sources: sources) }
                     guard Set(partners.map(\.id)).count == partners.count, rows.allSatisfy({ $0.culturalSignal.filmEntityId.lowercased() == film.entityId.lowercased() }) else { throw DiscoveryClientError.invalidResponse }
                     draft.partnerSnapshots = partners
+                    draft.discoveryPayload = rawJSON
                     draft.researchWarnings = event.warnings
                     draft.researchFingerprint = fingerprint
                     draft.selectedIDs.formIntersection(partners.map(\.id))
@@ -178,6 +198,7 @@ final class ScreeningStore {
                     path[path.count - 1] = .partners
                 } else {
                     recoveryReason = event.message ?? "Research could not finish. Your brief is safe."
+                    recoveryInputField = event.type == "needs_input" ? event.inputField : nil
                     path[path.count - 1] = .recovery(event.type == "no_matches" ? .noMatches : .interrupted)
                 }
             }

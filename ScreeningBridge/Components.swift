@@ -43,7 +43,7 @@ struct PartnerArtwork: View {
             if partner.evidence == nil {
                 Image(partner.image).resizable().scaledToFill()
             } else {
-                Image(systemName: partner.category == "Bookshop" ? "books.vertical" : partner.category == "Record shop" ? "opticaldisc" : "hands.sparkles")
+                Image(systemName: PartnerCategory.fromLabel(partner.category)?.display.symbol ?? "building.2")
                     .font(.largeTitle).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.secondarySystemGroupedBackground))

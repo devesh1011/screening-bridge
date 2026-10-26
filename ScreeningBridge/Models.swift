@@ -1,5 +1,17 @@
 import Foundation
 
+enum PartnerCategory: String, CaseIterable {
+    case bookshop, record_shop, ceramics_studio
+    var display: (label: String, symbol: String) {
+        switch self {
+        case .bookshop: ("Bookshop", "books.vertical")
+        case .record_shop: ("Record shop", "opticaldisc")
+        case .ceramics_studio: ("Ceramics studio", "hands.sparkles")
+        }
+    }
+    static func fromLabel(_ label: String) -> PartnerCategory? { allCases.first { $0.display.label == label } }
+}
+
 struct Film: Codable, Hashable, Identifiable {
     let id: String
     let title: String
@@ -85,6 +97,9 @@ struct ScreeningDraft: Codable, Equatable, Identifiable {
     var briefRevision: Int?
     var allowedPartnerCategories: [String]?
     var venueTimezone: String?
+    // Full wire result retains coordinates, address, claim/source associations,
+    // omitted IDs and provenance even when the presentation model is simpler.
+    var discoveryPayload: Data?
 
     var isLive: Bool { discoveryMode == "live" }
 

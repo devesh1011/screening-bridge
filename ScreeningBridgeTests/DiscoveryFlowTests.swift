@@ -12,7 +12,7 @@ struct FixtureDiscoveryService: DiscoveryServing {
         object["request_id"] = request.requestId
         object["brief_revision"] = request.briefRevision
         object["mode"] = "live"
-        let event = try LiveDiscoveryClient.decoder().decode(LiveEvent.self, from: JSONSerialization.data(withJSONObject: object))
+        let event = try LiveDiscoveryClient.decodeEvent(JSONSerialization.data(withJSONObject: object))
         try await onEvent(event)
     }
 }
@@ -37,7 +37,15 @@ final class DiscoveryFlowTests: XCTestCase {
         reopened.open(try XCTUnwrap(reopened.saved.first))
         XCTAssertEqual(reopened.draft.selectedPartners.first?.evidence?.facts.count, 1)
         XCTAssertEqual(reopened.draft.introduction(for: partner), "My edited text")
+        let payload = try XCTUnwrap(reopened.draft.discoveryPayload)
+        let wire = try JSONSerialization.jsonObject(with: payload) as! [String: Any]
+        let record = (wire["recommendations"] as! [[String: Any]])[0]
+        XCTAssertNotNil(record["coordinates"])
+        XCTAssertNotNil(record["identity_source_ids"])
+        XCTAssertNotNil(wire["unscored_partner_ids"])
         store.path = [.details, .research]
+        store.applyFilters(radius: 5, categories: store.allowedCategories)
+        XCTAssertTrue(store.draft.selectedIDs.contains(partner.id))
         await store.runSearch()
         XCTAssertEqual(store.draft.introduction(for: partner), "My edited text")
         store.draft.notes = "A revised brief"

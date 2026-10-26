@@ -181,11 +181,12 @@ struct RecoveryView: View {
                 VStack(spacing: 20) {
                     if outcome == .noMatches { ProgrammeArt(name: "ProgrammeSearch", height: 160) }
                     else { Image(systemName: "network.slash").font(.largeTitle).foregroundStyle(.secondary).padding(24).accessibilityHidden(true) }
-                    Text(outcome == .noMatches ? "No Useful Matches Yet" : "Search Interrupted").font(.title2.weight(.semibold)).multilineTextAlignment(.center)
+                    Text(store.recoveryInputField != nil ? "Check Your Screening" : outcome == .noMatches ? "No Useful Matches Yet" : "Search Interrupted").font(.title2.weight(.semibold)).multilineTextAlignment(.center)
                     Text(store.recoveryReason ?? (outcome == .noMatches ? "We couldn’t support a shortlist within \(store.draft.radius) miles.\nTry a wider area or adjust your preferences." : "We couldn’t finish this sample search. Please try again in a moment."))
                         .foregroundStyle(.secondary).multilineTextAlignment(.center)
-                    PrimaryAction(title: outcome == .noMatches ? "Edit Search" : "Try Again", id: "recoverSearch") {
-                        if outcome == .noMatches { store.path.removeLast() }
+                    PrimaryAction(title: outcome == .noMatches || store.recoveryInputField != nil ? "Edit Search" : "Try Again", id: "recoverSearch") {
+                        if let field = store.recoveryInputField { store.path = field == "film" ? [.film] : [.film, .details] }
+                        else if outcome == .noMatches { store.path.removeLast() }
                         else { store.path[store.path.count - 1] = .research }
                     }
                     Label("Your screening details are saved.", systemImage: "lock").font(.footnote).foregroundStyle(.secondary)
@@ -208,7 +209,7 @@ struct PartnerFiltersView: View {
                     Picker("Radius", selection: $radius) { ForEach([1, 2, 5, 10], id: \.self) { Text("\($0) miles").tag($0) } }
                 }
                 Section("Partner Types") {
-                    ForEach(SampleContent.partners.map(\.category), id: \.self) { category in
+                    ForEach(PartnerCategory.allCases.map { $0.display.label }, id: \.self) { category in
                         Toggle(category, isOn: Binding(get: { categories.contains(category) }, set: { if $0 { categories.insert(category) } else { categories.remove(category) } }))
                     }
                 }
@@ -219,11 +220,7 @@ struct PartnerFiltersView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel", systemImage: "xmark") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Apply") {
-                        store.draft.radius = radius; store.allowedCategories = categories
-                        store.draft.selectedIDs.formIntersection(store.visiblePartners.map(\.id))
-                        store.persistDraft()
-                        if store.draft.isLive { store.path[store.path.count - 1] = .research }
-                        else if store.visiblePartners.isEmpty { store.path[store.path.count - 1] = .recovery(.noMatches) }
+                        store.applyFilters(radius: radius, categories: categories)
                         dismiss()
                     }.buttonStyle(.glassProminent).disabled(categories.isEmpty)
                 }

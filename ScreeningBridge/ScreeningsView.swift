@@ -46,7 +46,7 @@ struct ScreeningsView: View {
                     }
                     Section("Upcoming") {
                         ForEach(store.saved) { plan in
-                            Button { store.open(plan) } label: { ScreeningCard(plan: plan) }
+                            Button { store.open(plan) } label: { ScreeningCard(plan: plan).contentShape(Rectangle()) }
                                 .buttonStyle(.plain).listRowInsets(EdgeInsets())
                                 .accessibilityIdentifier("savedScreening")
                         }

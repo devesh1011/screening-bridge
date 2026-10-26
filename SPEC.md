@@ -1,6 +1,6 @@
 # Screening Bridge — live discovery and hackathon delivery
 
-Prepared 26 October 2026. Status: milestone 1 technical work complete; discovery-service testing boundary confirmed by the user. Repository and tracker: https://github.com/devesh1011/screening-bridge. Triage label: `ready-for-agent`. See MILESTONE-1.md for coverage findings and limits; later milestones remain pending.
+Prepared 26 October 2026. Status: milestones 1 and 2 complete within the documented starter scope; discovery-service testing boundary confirmed by the user. Repository and tracker: https://github.com/devesh1011/screening-bridge. Triage label: `ready-for-agent`. See MILESTONE-1.md and MILESTONE-2.md for evidence and limits; milestones 3–5 remain pending.
 
 ## Problem Statement
 
@@ -129,7 +129,7 @@ The dates below are working targets in IST, not a claim that implementation or p
 | Milestone | Target | Deliverable and exit criterion |
 | --- | --- | --- |
 | 1. Coverage and contract — complete | 26 October | Resolved both films, Nitehawk Williamsburg and eight candidate identities. Three candidates returned scores for both films; order was unchanged. Sourced proposal, executable contract and tests delivered. Public repository and tracker established. See MILESTONE-1.md. |
-| 2. First live journey | 27 October | Bounded backend research/ranking/synthesis connected to the iPhone flow; a real proposal can be selected, edited, saved and reopened with its evidence. Deploy a minimal backend smoke endpoint early to expose hosting constraints. |
+| 2. First live journey — complete | Completed 26 October | Live Qloo/OpenAI service connected to the native flow; physical iPhone research/evidence/edit/save/reopen passed through ngrok to the local backend. Complete snapshots persist; public health/catalog smoke deployed. Public live API and browser remain milestone 3. See MILESTONE-2.md. |
 | 3. Reliability and hosted demo | 28 October | Archive migration, cancellation/revision handling and provider failure recovery pass; the browser journey uses the same service and works at a public HTTPS URL. |
 | 4. Evidence and visual review | 29 October | Complete the six-brief comparison, native state review, accessibility checks and fresh-browser smoke test. Fix blocking defects and document limits. |
 | 5. Publication and submission package | 30 October, 18:00 IST | Public focused repository, license/notices, reproducible README, working demo, verified links and final project description. Complete the authorized submission process or identify any account-only action explicitly. |
@@ -145,6 +145,6 @@ A judge can open the hosted demo, choose a supported real film and cinema, recei
 
 - The user authorized repository creation. The project now uses https://github.com/devesh1011/screening-bridge and its GitHub Issues tracker, with the `ready-for-agent` label configured.
 - The user confirmed the discovery-service testing boundary, deterministic UI substitute and extension of the existing local-save tests on 26 October 2026.
-- Live Qloo credentials and the tested lookup/ranking endpoints were verified during milestone 1. OpenAI access, account-wide quotas, hosting access and current device connection remain unchecked. No secret values are stored in the public source.
+- Qloo and OpenAI access, the hosted health/catalog deployment and physical-device operation were verified. Account-wide quotas were not audited; the development service imposes its own bounded calls and daily run limit. No secret values are stored in the public source.
 - Existing design and product documents remain the authority for the approved native visual direction. This spec extends the sample-only milestone to live discovery and release delivery.
-- Milestone 1 adds the executable contract and bounded Qloo probe. OpenAI orchestration, native live integration, deployment and Devpost submission remain pending.
+- Milestones 1–2 deliver the contract, probe, bounded agent service, native live integration and a hosted smoke endpoint. Public browser delivery, production session/storage controls, broad visual/accessibility review, contribution evaluation and submission remain pending.

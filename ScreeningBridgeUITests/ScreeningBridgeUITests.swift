@@ -26,6 +26,8 @@ final class ScreeningBridgeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["planSavedHeading"].waitForExistence(timeout: 5))
         app.buttons["closeSaved"].tap()
         XCTAssertTrue(app.buttons["savedScreening"].waitForExistence(timeout: 3))
+        app.buttons["savedScreening"].tap()
+        XCTAssertTrue(app.buttons["savePlan"].waitForExistence(timeout: 3))
         app.terminate()
         app.launchArguments = ["--ui-testing"]
         app.launch()
@@ -85,13 +87,16 @@ final class ScreeningBridgeUITests: XCTestCase {
         app.buttons["newScreening"].tap()
         app.segmentedControls["researchMode"].buttons["Live"].tap()
         app.tap()
-        if app.buttons["Retry Connection"].waitForExistence(timeout: 2) { app.buttons["Retry Connection"].tap() }
+        if app.buttons["Retry Connection"].waitForExistence(timeout: 4) { app.buttons["Retry Connection"].tap() }
         XCTAssertTrue(app.buttons["filmPerfectDays"].waitForExistence(timeout: 15))
         app.buttons["filmPerfectDays"].tap()
         app.buttons["continueFilm"].tap()
         app.buttons["findPartners"].tap()
         let select = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'select-' ")).firstMatch
         XCTAssertTrue(select.waitForExistence(timeout: 100))
+        XCTAssertTrue(app.buttons["buildPlan"].waitForExistence(timeout: 5))
+        // Capture after the short native navigation/result-reveal transitions settle.
+        Thread.sleep(forTimeInterval: 1)
         let shortlist = XCTAttachment(screenshot: app.screenshot()); shortlist.name = "live-shortlist"; shortlist.lifetime = .keepAlways; add(shortlist)
         app.buttons["whyPlaces"].tap()
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Qloo' ")).firstMatch.waitForExistence(timeout: 3))

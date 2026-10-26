@@ -44,7 +44,7 @@ def provider_response(request):
     if request.url.path == "/v1/responses":
         body = json.loads(request.content)
         if body.get("text"):
-            proposal = {"partner_id": STUDIO, "interpretation": "Careful making could complement the film's attention to everyday life.", "proposed_activity": "Discuss a short handbuilding session.", "introduction": "Hello, would you be open to discussing a handbuilding session alongside our proposed screening?", "still_to_confirm": ["Interest, date, capacity and cost."]}
+            proposal = {"partner_id": STUDIO, "activity": "handbuilding", "focus": "everyday_attention"}
             return httpx.Response(200, json={"status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": json.dumps({"proposals": [proposal]})}]}]})
         if any(tool.get("name") == "rank_partners" for tool in body.get("tools", [])):
             return httpx.Response(200, json={"status": "completed", "output": [{"type": "function_call", "name": "rank_partners", "call_id": "call_rank", "arguments": "{}"}]})
@@ -69,6 +69,21 @@ def test_live_brief_returns_grounded_partner_with_durable_evidence():
     asyncio.run(scenario())
 
 
+def test_missing_selected_identity_returns_to_input_instead_of_retrying_provider():
+    async def scenario():
+        def response(request):
+            if request.url.path == "/search" and request.url.params["query"] == "Perfect Days":
+                return httpx.Response(200, json={"results": []})
+            return provider_response(request)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
+            service = DiscoveryService(client=client, qloo_key="test-qloo", openai_key="test-openai")
+            events = [event async for event in service.discover(brief())]
+            assert events[-1].type == "needs_input"
+            assert events[-1].input_field == "film"
+            assert events[-1].retryable is False
+    asyncio.run(scenario())
+
+
 def test_reconnecting_replays_a_completed_run_without_changing_the_plan(tmp_path):
     from screening_bridge.api import create_app
     client = httpx.AsyncClient(transport=httpx.MockTransport(provider_response))
@@ -86,7 +101,7 @@ def test_reconnecting_replays_a_completed_run_without_changing_the_plan(tmp_path
         assert api.post("/v1/discoveries", json=payload).status_code == 401
 
 
-@pytest.mark.parametrize("failure", ["source_blocked", "qloo_outage", "unsupported_proposal", "deadline"])
+@pytest.mark.parametrize("failure", ["source_blocked", "qloo_outage", "unsupported_proposal", "unsupported_claim", "deadline"])
 def test_live_failures_preserve_an_honest_terminal_outcome(failure):
     async def scenario():
         async def response(request):
@@ -100,6 +115,10 @@ def test_live_failures_preserve_an_honest_terminal_outcome(failure):
             if failure == "unsupported_proposal" and request.url.path == "/v1/responses" and json.loads(request.content).get("text"):
                 data = result.json()
                 data["output"][0]["content"][0]["text"] = json.dumps({"proposals": [{"partner_id": str(uuid4()), "interpretation": "Unsupported", "proposed_activity": "Unsupported", "introduction": "Unsupported", "still_to_confirm": ["Everything"]}]})
+                return httpx.Response(200, json=data)
+            if failure == "unsupported_claim" and request.url.path == "/v1/responses" and json.loads(request.content).get("text"):
+                data = result.json()
+                data["output"][0]["content"][0]["text"] = json.dumps({"proposals": [{"partner_id": STUDIO, "interpretation": "The partner confirmed availability for your screening.", "proposed_activity": "Join its established Friday screening programme.", "introduction": "Thank you for confirming your 100-seat venue.", "still_to_confirm": ["Nothing"]}]})
                 return httpx.Response(200, json=data)
             return result
         async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:

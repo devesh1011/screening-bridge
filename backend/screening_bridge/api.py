@@ -5,7 +5,7 @@ milestone-2 deployment exposes health/catalog only; public live discovery needs
 shared durable storage and anonymous-session controls in milestone 3.
 """
 
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 import hashlib
 import hmac
 import json
@@ -35,11 +35,16 @@ def create_app(*, client: httpx.AsyncClient | None = None, qloo_key: str = "", o
     app = FastAPI(title="Screening Bridge", lifespan=lifespan)
     configured = bool(qloo_key and openai_key and access_token) and not os.environ.get("VERCEL")
 
+    @contextmanager
     def connection():
         Path(database).parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(database, timeout=5)
         db.execute("CREATE TABLE IF NOT EXISTS runs (owner TEXT, id TEXT, fingerprint TEXT, state TEXT, events TEXT, created REAL, PRIMARY KEY(owner,id))")
-        return db
+        try:
+            with db:
+                yield db
+        finally:
+            db.close()
 
     @app.middleware("http")
     async def limit_body(request: Request, call_next):

@@ -7,7 +7,7 @@ struct LiveFilm: Codable, Hashable, Identifiable {
     let year: Int
     let director: String?
     var id: String { entityId }
-    var film: Film { Film(id: entityId, title: title, year: year, director: director ?? "", image: title == "Perfect Days" ? "FilmCover" : "Programme") }
+    var film: Film { Film(id: entityId, title: title, year: year, director: director ?? "", image: "Programme") }
 }
 struct LiveVenue: Codable, Hashable, Identifiable {
     let entityId: String
@@ -68,7 +68,7 @@ struct LiveRecommendation: Codable, Hashable {
     func partner(sources: [LiveSource]) throws -> Partner {
         let refs = Set(identitySourceIds + facts.flatMap(\.sourceIds))
         guard !refs.isEmpty, refs.isSubset(of: Set(sources.map(\.sourceId))) else { throw DiscoveryClientError.invalidResponse }
-        let categoryName = ["bookshop": "Bookshop", "record_shop": "Record shop", "ceramics_studio": "Ceramics studio"][category] ?? category
+        guard let categoryName = PartnerCategory(rawValue: category)?.display.label else { throw DiscoveryClientError.invalidResponse }
         var partner = Partner(id: partnerId, name: name, category: categoryName, image: "", walkingMinutes: 0, distanceMiles: distanceM / 1609.344, rationale: proposedActivity, connection: interpretation, idea: proposedActivity, activity: proposedActivity)
         partner.evidence = PartnerEvidence(facts: facts.map(\.text), sources: sources.filter { refs.contains($0.sourceId) }.map(\.evidence), researchedAt: culturalSignal.retrievedAt, qlooRank: culturalSignal.returnedRank, qlooAffinity: culturalSignal.affinity, qlooQueryID: culturalSignal.queryId, filmEntityID: culturalSignal.filmEntityId, candidatePoolIDs: culturalSignal.candidatePoolIds, introduction: introduction, stillToConfirm: stillToConfirm)
         return partner
@@ -83,9 +83,11 @@ struct LiveEvent: Decodable {
     let type: String
     let stage: String?
     let message: String?
+    let inputField: String?
     let recommendations: [LiveRecommendation]?
     let sources: [LiveSource]?
     let warnings: [String]?
+    var rawJSON: Data? = nil
 }
 
 enum DiscoveryClientError: LocalizedError {
@@ -115,6 +117,11 @@ struct LiveConfiguration: Decodable {
 }
 
 struct LiveDiscoveryClient: DiscoveryServing {
+    static func decodeEvent(_ data: Data) throws -> LiveEvent {
+        var event = try decoder().decode(LiveEvent.self, from: data)
+        event.rawJSON = data
+        return event
+    }
     static func decoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -163,7 +170,7 @@ struct LiveDiscoveryClient: DiscoveryServing {
             try Task.checkCancellation()
             guard line.hasPrefix("data: ") else { continue }
             guard !terminal else { throw DiscoveryClientError.invalidResponse }
-            let event = try Self.decoder().decode(LiveEvent.self, from: Data(line.dropFirst(6).utf8))
+            let event = try Self.decodeEvent(Data(line.dropFirst(6).utf8))
             guard event.schemaVersion == "1.0", event.mode == "live", event.requestId.lowercased() == payload.requestId.lowercased(), event.briefRevision == payload.briefRevision, event.sequence > lastSequence else { throw DiscoveryClientError.invalidResponse }
             guard ["progress", "completed", "no_matches", "needs_input", "unavailable", "cancelled"].contains(event.type) else { throw DiscoveryClientError.invalidResponse }
             lastSequence = event.sequence
