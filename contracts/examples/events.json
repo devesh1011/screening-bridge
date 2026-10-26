@@ -1,0 +1,81 @@
+[
+  {
+    "schema_version": "1.0",
+    "request_id": "00000000-0000-0000-0000-000000000001",
+    "brief_revision": 1,
+    "mode": "sample",
+    "emitted_at": "2026-10-26T06:00:00Z",
+    "sequence": 1,
+    "type": "progress",
+    "stage": "researching"
+  },
+  {
+    "schema_version": "1.0",
+    "request_id": "00000000-0000-0000-0000-000000000001",
+    "brief_revision": 1,
+    "mode": "sample",
+    "emitted_at": "2026-10-26T06:00:00Z",
+    "sequence": 2,
+    "type": "completed",
+    "recommendations": [
+      {
+        "partner_id": "00000000-0000-0000-0000-000000000004",
+        "name": "Sample Studio",
+        "category": "ceramics_studio",
+        "address": "Fictional studio address",
+        "coordinates": {
+          "latitude": 40.701,
+          "longitude": -73.9
+        },
+        "distance_m": 111.195,
+        "distance_method": "great_circle",
+        "identity_source_ids": [
+          "sample-source"
+        ],
+        "facts": [
+          {
+            "text": "Synthetic fact used only to test source references.",
+            "source_ids": [
+              "sample-source"
+            ]
+          }
+        ],
+        "cultural_signal": {
+          "kind": "direct_qloo",
+          "query_id": "00000000-0000-0000-0000-000000000006",
+          "film_entity_id": "00000000-0000-0000-0000-000000000002",
+          "candidate_pool_ids": [
+            "00000000-0000-0000-0000-000000000004",
+            "00000000-0000-0000-0000-000000000005"
+          ],
+          "returned_rank": 1,
+          "affinity": 0.6,
+          "retrieved_at": "2026-10-26T06:00:00Z",
+          "input_contribution": 1.0
+        },
+        "interpretation": "A fictional illustration of a proposed connection.",
+        "proposed_activity": "Discuss a small making session before a screening.",
+        "introduction": "Hello, would you be open to discussing a collaboration?",
+        "availability": "unconfirmed",
+        "willingness": "unconfirmed",
+        "still_to_confirm": [
+          "Availability, capacity, cost and partner interest."
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "sample-source",
+        "url": "https://example.org/studio",
+        "title": "Synthetic evidence placeholder",
+        "retrieved_at": "2026-10-26T06:00:00Z"
+      }
+    ],
+    "unscored_partner_ids": [
+      "00000000-0000-0000-0000-000000000005"
+    ],
+    "warnings": [
+      "Sample data: one candidate has no returned score."
+    ]
+  }
+]

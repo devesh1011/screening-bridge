@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "request_id": "00000000-0000-0000-0000-000000000001",
+  "brief_revision": 1,
+  "mode": "sample",
+  "film": {
+    "entity_id": "00000000-0000-0000-0000-000000000002",
+    "title": "Synthetic Film",
+    "year": 2023,
+    "director": "Example Director"
+  },
+  "venue": {
+    "entity_id": "00000000-0000-0000-0000-000000000003",
+    "name": "Sample Cinema",
+    "address": "Fictional address for contract testing",
+    "coordinates": {
+      "latitude": 40.7,
+      "longitude": -73.9
+    },
+    "timezone": "America/New_York"
+  },
+  "screening_at": "2026-10-30T19:00:00-04:00",
+  "radius_m": 3219,
+  "categories": [
+    "ceramics_studio"
+  ],
+  "notes": "Synthetic contract example; no real event or business."
+}

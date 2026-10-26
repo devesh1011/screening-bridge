@@ -1,0 +1,572 @@
+{
+  "$defs": {
+    "CompletedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "brief_revision": {
+          "minimum": 1,
+          "title": "Brief Revision",
+          "type": "integer"
+        },
+        "mode": {
+          "enum": [
+            "live",
+            "sample"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "type": {
+          "const": "completed",
+          "default": "completed",
+          "title": "Type",
+          "type": "string"
+        },
+        "recommendations": {
+          "items": {
+            "$ref": "#/$defs/PartnerRecommendation"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Recommendations",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "maxItems": 50,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "unscored_partner_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Unscored Partner Ids",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "request_id",
+        "brief_revision",
+        "mode",
+        "sequence",
+        "emitted_at",
+        "recommendations",
+        "sources"
+      ],
+      "title": "CompletedEvent",
+      "type": "object"
+    },
+    "Coordinates": {
+      "additionalProperties": false,
+      "properties": {
+        "latitude": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Latitude",
+          "type": "number"
+        },
+        "longitude": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Longitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "title": "Coordinates",
+      "type": "object"
+    },
+    "CulturalSignal": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "direct_qloo",
+          "default": "direct_qloo",
+          "title": "Kind",
+          "type": "string"
+        },
+        "query_id": {
+          "format": "uuid",
+          "title": "Query Id",
+          "type": "string"
+        },
+        "film_entity_id": {
+          "format": "uuid",
+          "title": "Film Entity Id",
+          "type": "string"
+        },
+        "candidate_pool_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 50,
+          "minItems": 1,
+          "title": "Candidate Pool Ids",
+          "type": "array"
+        },
+        "returned_rank": {
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Returned Rank",
+          "type": "integer"
+        },
+        "affinity": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Affinity",
+          "type": "number"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "input_contribution": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Contribution"
+        }
+      },
+      "required": [
+        "query_id",
+        "film_entity_id",
+        "candidate_pool_ids",
+        "returned_rank",
+        "affinity",
+        "retrieved_at"
+      ],
+      "title": "CulturalSignal",
+      "type": "object"
+    },
+    "PartnerRecommendation": {
+      "additionalProperties": false,
+      "properties": {
+        "partner_id": {
+          "format": "uuid",
+          "title": "Partner Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "bookshop",
+            "record_shop",
+            "ceramics_studio"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "address": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Address",
+          "type": "string"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/Coordinates"
+        },
+        "distance_m": {
+          "minimum": 0,
+          "title": "Distance M",
+          "type": "number"
+        },
+        "distance_method": {
+          "const": "great_circle",
+          "default": "great_circle",
+          "title": "Distance Method",
+          "type": "string"
+        },
+        "identity_source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "minItems": 1,
+          "title": "Identity Source Ids",
+          "type": "array"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/SourcedClaim"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Facts",
+          "type": "array"
+        },
+        "cultural_signal": {
+          "$ref": "#/$defs/CulturalSignal"
+        },
+        "interpretation": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "proposed_activity": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Proposed Activity",
+          "type": "string"
+        },
+        "introduction": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Introduction",
+          "type": "string"
+        },
+        "availability": {
+          "const": "unconfirmed",
+          "default": "unconfirmed",
+          "title": "Availability",
+          "type": "string"
+        },
+        "willingness": {
+          "const": "unconfirmed",
+          "default": "unconfirmed",
+          "title": "Willingness",
+          "type": "string"
+        },
+        "still_to_confirm": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 10,
+          "minItems": 1,
+          "title": "Still To Confirm",
+          "type": "array"
+        }
+      },
+      "required": [
+        "partner_id",
+        "name",
+        "category",
+        "address",
+        "coordinates",
+        "distance_m",
+        "identity_source_ids",
+        "facts",
+        "cultural_signal",
+        "interpretation",
+        "proposed_activity",
+        "introduction",
+        "still_to_confirm"
+      ],
+      "title": "PartnerRecommendation",
+      "type": "object"
+    },
+    "ProgressEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "brief_revision": {
+          "minimum": 1,
+          "title": "Brief Revision",
+          "type": "integer"
+        },
+        "mode": {
+          "enum": [
+            "live",
+            "sample"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "type": {
+          "const": "progress",
+          "default": "progress",
+          "title": "Type",
+          "type": "string"
+        },
+        "stage": {
+          "enum": [
+            "resolving",
+            "researching",
+            "ranking",
+            "preparing"
+          ],
+          "title": "Stage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "brief_revision",
+        "mode",
+        "sequence",
+        "emitted_at",
+        "stage"
+      ],
+      "title": "ProgressEvent",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "url",
+        "title",
+        "retrieved_at"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "SourcedClaim": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "source_ids"
+      ],
+      "title": "SourcedClaim",
+      "type": "object"
+    },
+    "StoppedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "brief_revision": {
+          "minimum": 1,
+          "title": "Brief Revision",
+          "type": "integer"
+        },
+        "mode": {
+          "enum": [
+            "live",
+            "sample"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "no_matches",
+            "needs_input",
+            "unavailable",
+            "cancelled"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "code": {
+          "enum": [
+            "no_eligible_candidates",
+            "no_qloo_coverage",
+            "ambiguous_film",
+            "ambiguous_venue",
+            "invalid_brief",
+            "provider_unavailable",
+            "timeout",
+            "rate_limited",
+            "capacity",
+            "cancelled"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "input_field": {
+          "anyOf": [
+            {
+              "enum": [
+                "film",
+                "venue",
+                "screening_at",
+                "constraints"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Field"
+        }
+      },
+      "required": [
+        "request_id",
+        "brief_revision",
+        "mode",
+        "sequence",
+        "emitted_at",
+        "type",
+        "code",
+        "message",
+        "retryable"
+      ],
+      "title": "StoppedEvent",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "cancelled": "#/$defs/StoppedEvent",
+      "completed": "#/$defs/CompletedEvent",
+      "needs_input": "#/$defs/StoppedEvent",
+      "no_matches": "#/$defs/StoppedEvent",
+      "progress": "#/$defs/ProgressEvent",
+      "unavailable": "#/$defs/StoppedEvent"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ProgressEvent"
+    },
+    {
+      "$ref": "#/$defs/CompletedEvent"
+    },
+    {
+      "$ref": "#/$defs/StoppedEvent"
+    }
+  ]
+}

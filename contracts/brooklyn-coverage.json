@@ -1,0 +1,124 @@
+{
+  "case": "Nitehawk Williamsburg coverage probe; hypothetical screenings, no venue affiliation",
+  "origin": {
+    "latitude": 40.7159722,
+    "longitude": -73.962575
+  },
+  "radius_m": 3219,
+  "venue": {
+    "query": "Nitehawk Cinema",
+    "name": "Nitehawk Cinema Williamsburg",
+    "address_terms": [
+      "136 Metropolitan",
+      "Brooklyn"
+    ]
+  },
+  "films": [
+    {
+      "key": "perfect-days",
+      "query": "Perfect Days",
+      "name": "Perfect Days",
+      "year": 2023
+    },
+    {
+      "key": "school-of-rock",
+      "query": "School of Rock",
+      "name": "School of Rock",
+      "year": 2003
+    }
+  ],
+  "candidates": [
+    {
+      "key": "spoonbill",
+      "query": "Spoonbill",
+      "name": "Spoonbill & Sugartown Books",
+      "address_terms": [
+        "218 Bedford",
+        "Brooklyn"
+      ]
+    },
+    {
+      "key": "mcnally-jackson",
+      "query": "McNally Jackson",
+      "name": "McNally Jackson Books Williamsburg",
+      "address_terms": [
+        "76 N 4th",
+        "Brooklyn"
+      ]
+    },
+    {
+      "key": "word",
+      "query": "WORD",
+      "name": "WORD",
+      "address_terms": [
+        "126 Franklin",
+        "Brooklyn"
+      ]
+    },
+    {
+      "key": "captured-tracks",
+      "query": "Captured Tracks",
+      "name": "Captured Record Shop",
+      "address_terms": [
+        "718 Manhattan",
+        "Brooklyn"
+      ]
+    },
+    {
+      "key": "choplet",
+      "query": "Choplet",
+      "name": "Choplet Ceramic Studio & Gallery",
+      "address_terms": [
+        "238 Grand",
+        "Brooklyn"
+      ]
+    },
+    {
+      "key": "clay-space",
+      "query": "Clay Space",
+      "name": "CLAY SPACE Ceramic Center",
+      "address_terms": [
+        "275 Calyer",
+        "Brooklyn"
+      ]
+    },
+    {
+      "key": "quimbys",
+      "query": "Quimbys",
+      "name": "Quimby's Bookstore NYC",
+      "address_terms": [
+        "536 Metropolitan",
+        "Brooklyn"
+      ]
+    },
+    {
+      "key": "for-the-record",
+      "query": "For The Record",
+      "name": "For The Record",
+      "address_terms": [
+        "1107 Manhattan",
+        "Brooklyn"
+      ]
+    }
+  ],
+  "pools": {
+    "initial": [
+      "spoonbill",
+      "mcnally-jackson",
+      "word",
+      "captured-tracks",
+      "choplet",
+      "clay-space"
+    ],
+    "expanded": [
+      "spoonbill",
+      "mcnally-jackson",
+      "word",
+      "captured-tracks",
+      "choplet",
+      "clay-space",
+      "quimbys",
+      "for-the-record"
+    ]
+  }
+}

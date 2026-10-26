@@ -1,0 +1,195 @@
+{
+  "$defs": {
+    "Coordinates": {
+      "additionalProperties": false,
+      "properties": {
+        "latitude": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Latitude",
+          "type": "number"
+        },
+        "longitude": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Longitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "title": "Coordinates",
+      "type": "object"
+    },
+    "FilmIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "entity_id": {
+          "format": "uuid",
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "year": {
+          "maximum": 2100,
+          "minimum": 1888,
+          "title": "Year",
+          "type": "integer"
+        },
+        "director": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Director"
+        }
+      },
+      "required": [
+        "entity_id",
+        "title",
+        "year"
+      ],
+      "title": "FilmIdentity",
+      "type": "object"
+    },
+    "VenueIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "entity_id": {
+          "format": "uuid",
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "address": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Address",
+          "type": "string"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/Coordinates"
+        },
+        "timezone": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Timezone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_id",
+        "name",
+        "address",
+        "coordinates",
+        "timezone"
+      ],
+      "title": "VenueIdentity",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "brief_revision": {
+      "minimum": 1,
+      "title": "Brief Revision",
+      "type": "integer"
+    },
+    "mode": {
+      "enum": [
+        "live",
+        "sample"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "film": {
+      "$ref": "#/$defs/FilmIdentity"
+    },
+    "venue": {
+      "$ref": "#/$defs/VenueIdentity"
+    },
+    "screening_at": {
+      "format": "date-time",
+      "title": "Screening At",
+      "type": "string"
+    },
+    "radius_m": {
+      "exclusiveMinimum": 0,
+      "maximum": 16094,
+      "title": "Radius M",
+      "type": "integer"
+    },
+    "categories": {
+      "items": {
+        "enum": [
+          "bookshop",
+          "record_shop",
+          "ceramics_studio"
+        ],
+        "type": "string"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Categories",
+      "type": "array"
+    },
+    "excluded_partner_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Excluded Partner Ids",
+      "type": "array"
+    },
+    "notes": {
+      "default": "",
+      "maxLength": 2000,
+      "title": "Notes",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "brief_revision",
+    "mode",
+    "film",
+    "venue",
+    "screening_at",
+    "radius_m",
+    "categories"
+  ],
+  "title": "DiscoveryRequest",
+  "type": "object"
+}

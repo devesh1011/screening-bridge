@@ -1,0 +1,17 @@
+.DS_Store
+.venv/
+__pycache__/
+.pytest_cache/
+.local/
+.env
+.env.*
+!.env.example
+build/
+artifacts/
+*.xcresult/
+*.xcodeproj/
+*.xcworkspace/
+*.xcuserstate
+*.mobileprovision
+*.p12
+*.log

@@ -1,0 +1,13 @@
+[project]
+name = "screening-bridge"
+version = "0.1.0"
+description = "Discovery contract and live Qloo coverage probe for Screening Bridge"
+requires-python = ">=3.13"
+dependencies = ["httpx>=0.28,<1", "pydantic>=2.13,<3"]
+
+[dependency-groups]
+dev = ["pytest>=9,<10"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
