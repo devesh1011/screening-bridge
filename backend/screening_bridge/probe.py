@@ -38,7 +38,11 @@ def resolve(rows: list[dict], expected: dict, entity_type: str) -> dict | None:
         try:
             entity_id = str(UUID(row["entity_id"]))
             location = row.get("location")
-            coordinates = Coordinates(latitude=location["lat"], longitude=location["lon"]).model_dump() if entity_type == "place" else None
+            coordinates = None
+            if entity_type == "place":
+                if not isinstance(location, dict):
+                    continue
+                coordinates = Coordinates(latitude=location["lat"], longitude=location["lon"]).model_dump()
         except (KeyError, TypeError, ValueError):
             continue
         matches.append({"entity_id": entity_id, "name": row["name"], "address": props.get("address"), "year": props.get("release_year"), "coordinates": coordinates})

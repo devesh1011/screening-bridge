@@ -4,6 +4,7 @@ import UIKit
 struct PlanView: View {
     @Bindable var store: ScreeningStore
     @State private var editingPartner: Partner?
+    @State private var evidencePartner: Partner?
     @State private var saveTask: Task<Void, Never>?
     @State private var openedPreview = false
     private let steps = ["Review the introductions", "Contact your chosen partners", "Record their replies"]
@@ -17,7 +18,7 @@ struct PlanView: View {
             ForEach(Array(store.draft.selectedPartners.enumerated()), id: \.element.id) { index, partner in
                 Section {
                     HStack(spacing: 14) {
-                        Image(partner.image).resizable().scaledToFill().frame(width: 72, height: 78).clipped().clipShape(.rect(cornerRadius: 12)).accessibilityHidden(true)
+                        PartnerArtwork(partner: partner).frame(width: 72, height: 78).clipped().clipShape(.rect(cornerRadius: 12)).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 6) {
                             Text(partner.name).font(.headline)
                             Text(partner.activity).font(.subheadline).foregroundStyle(.secondary)
@@ -26,6 +27,9 @@ struct PlanView: View {
                     Button { editingPartner = partner } label: {
                         HStack { Text("Preview Introduction").foregroundStyle(.primary); Spacer(); Image(systemName: "chevron.right").foregroundStyle(.tertiary) }
                     }.accessibilityIdentifier("introduction-\(partner.id)")
+                    if partner.evidence != nil {
+                        Button("View Evidence") { evidencePartner = partner }
+                    }
                 } header: { if index == 0 { Text("Partners") } }
             }
             Section("Next Steps") {
@@ -56,12 +60,13 @@ struct PlanView: View {
                     if store.isSaving { HStack(spacing: 6) { Text("Saving"); ProgressView().controlSize(.small) } }
                     else { Text(store.saveError == nil ? "Save" : "Retry") }
                 }
-                .buttonStyle(.glassProminent).disabled(store.isSaving || store.draft.selectedIDs.isEmpty)
+                .buttonStyle(.glassProminent).disabled(store.isSaving || store.draft.selectedIDs.isEmpty || !store.hasCurrentResults)
                 .accessibilityLabel(store.isSaving ? "Saving plan" : store.saveError == nil ? "Save plan" : "Retry saving plan")
                 .accessibilityIdentifier("savePlan")
             }
         }
         .sheet(item: $editingPartner) { partner in MessageDraftView(store: store, partner: partner) }
+        .sheet(item: $evidencePartner) { partner in EvidenceView(partner: partner) }
         .onDisappear { saveTask?.cancel() }
         .task {
             guard !openedPreview else { return }
@@ -94,7 +99,7 @@ struct MessageDraftView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    SampleBadge()
+                    SampleBadge(isLive: store.draft.isLive)
                     LabeledContent("To", value: partner.name)
                     Divider()
                     VStack(alignment: .leading, spacing: 6) {
@@ -180,7 +185,7 @@ struct SavedPlanView: View {
                         Text("\(plan.draft.selectedIDs.count) Partners").font(.title3.weight(.semibold))
                         ForEach(plan.draft.selectedPartners) { partner in
                             HStack(spacing: 16) {
-                                Image(partner.image).resizable().scaledToFill().frame(width: 65, height: 70).clipped().clipShape(.rect(cornerRadius: 12)).accessibilityHidden(true)
+                                PartnerArtwork(partner: partner).frame(width: 65, height: 70).clipped().clipShape(.rect(cornerRadius: 12)).accessibilityHidden(true)
                                 Text(partner.name).font(.headline)
                                 Spacer(minLength: 0)
                             }
@@ -205,11 +210,28 @@ struct SavedPlanView: View {
 
 struct EvidenceView: View {
     let partner: Partner?
+    var livePartners: [Partner] = []
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    if partner?.evidence != nil || !livePartners.isEmpty {
+                        SampleBadge(isLive: true)
+                        ForEach(partner.map { [$0] } ?? livePartners) { item in
+                            if let evidence = item.evidence {
+                                Text(item.name).font(.title3.weight(.semibold))
+                                evidenceRow("Cultural Signal", symbol: "point.3.connected.trianglepath.dotted", color: .blue, subtitle: "Qloo · rank \(evidence.qlooRank) in this search", body: "Relative cultural affinity, not a prediction of attendance or partner interest.")
+                                Text("Researched \(evidence.researchedAt.formatted(date: .abbreviated, time: .shortened))").font(.footnote).foregroundStyle(.secondary)
+                                ForEach(evidence.facts, id: \.self) { Text($0).font(.subheadline) }
+                                ForEach(evidence.sources) { source in
+                                    Link(destination: source.url) { Label(source.title, systemImage: "arrow.up.right.square").frame(minHeight: 44) }
+                                }
+                                evidenceRow("Still to Confirm", symbol: "questionmark.circle", color: .orange, subtitle: "Interest and availability are unconfirmed.", body: evidence.stillToConfirm.joined(separator: "\n"))
+                                Divider()
+                            }
+                        }
+                    } else {
                     SampleBadge()
                     evidenceRow("Cultural Signal", symbol: "book.closed", color: .blue, subtitle: "Qloo taste affinity", body: "An illustrative connection between the film and \(partner?.id == "records" ? "music" : partner?.id == "studio" ? "creative" : "literary") interests.")
                     Divider()
@@ -217,6 +239,7 @@ struct EvidenceView: View {
                     Divider()
                     evidenceRow("Still to Confirm", symbol: "questionmark.circle", color: .orange, subtitle: "Audience fit, interest, availability and the event format.", body: "A cultural connection is a starting point, not a guarantee.")
                     Text("This screen uses sample evidence. Live research will be connected in the next stage.").font(.footnote).foregroundStyle(.secondary)
+                    }
                 }.padding(24)
             }
             .navigationTitle("Why This Connection").navigationBarTitleDisplayMode(.inline)

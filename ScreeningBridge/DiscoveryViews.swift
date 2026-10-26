@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ResearchView: View {
     @Bindable var store: ScreeningStore
-    private let stages = ["Finding cultural connections", "Checking nearby places", "Preparing your shortlist"]
+    private var stages: [String] { store.draft.isLive ? ["Confirming film and cinema", "Researching nearby partners", "Checking cultural ranking", "Preparing your shortlist"] : ["Finding cultural connections", "Checking nearby places", "Preparing your shortlist"] }
 
     var body: some View {
         ScrollView {
@@ -11,7 +11,7 @@ struct ResearchView: View {
                 VStack(spacing: 18) {
                     ProgressView().controlSize(.large)
                     Text("Looking for local connections").font(.title3.weight(.semibold)).multilineTextAlignment(.center)
-                    Text("Sample search preview").font(.subheadline).foregroundStyle(.secondary)
+                    Text(store.draft.isLive ? "Live research · you can go back to cancel" : "Sample search preview").font(.subheadline).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity).padding(.top, 45)
                 VStack(spacing: 22) {
                     ForEach(stages.indices, id: \.self) { index in
@@ -32,7 +32,7 @@ struct ResearchView: View {
             }.padding(24)
         }
         .navigationTitle("Finding Partners").navigationBarTitleDisplayMode(.inline)
-        .task { await store.runSampleSearch() }
+        .task { await store.runSearch() }
     }
 }
 
@@ -49,11 +49,14 @@ struct PartnersView: View {
             VStack(alignment: .leading, spacing: 24) {
                 FilmSummary(draft: store.draft, compact: true)
                 Text("\(store.visiblePartners.count == 3 ? "Three places" : "Places") worth a conversation.").foregroundStyle(.secondary)
+                if store.draft.isLive, let warnings = store.draft.researchWarnings {
+                    ForEach(warnings, id: \.self) { Text($0).font(.footnote).foregroundStyle(.secondary) }
+                }
                 ForEach(Array(store.visiblePartners.enumerated()), id: \.element.id) { index, partner in
                     VStack(alignment: .leading, spacing: 12) {
                         if index == 0 {
                             Button { store.path.append(.partner(partner.id)) } label: {
-                                Image(partner.image).resizable().scaledToFill()
+                                PartnerArtwork(partner: partner)
                                     .frame(height: textSize.isAccessibilitySize ? 130 : 175)
                                     .frame(maxWidth: .infinity).clipped().clipShape(.rect(cornerRadius: 22))
                             }.buttonStyle(.plain).accessibilityLabel("View \(partner.name)")
@@ -67,7 +70,7 @@ struct PartnersView: View {
                             .accessibilityAddTraits(store.draft.selectedIDs.contains(partner.id) ? .isSelected : [])
                             .accessibilityIdentifier("select-\(partner.id)")
                             if index > 0 && !textSize.isAccessibilitySize {
-                                Image(partner.image).resizable().scaledToFill().frame(width: 70, height: 84).clipped().clipShape(.rect(cornerRadius: 14)).accessibilityHidden(true)
+                                PartnerArtwork(partner: partner).frame(width: 70, height: 84).clipped().clipShape(.rect(cornerRadius: 14)).accessibilityHidden(true)
                             }
                             Button { store.path.append(.partner(partner.id)) } label: {
                                 HStack(spacing: 8) {
@@ -107,7 +110,7 @@ struct PartnersView: View {
             }.sharedBackgroundVisibility(.hidden)
         }
         .sheet(isPresented: $filters) { PartnerFiltersView(store: store) }
-        .sheet(isPresented: $evidence) { EvidenceView(partner: nil) }
+        .sheet(isPresented: $evidence) { EvidenceView(partner: nil, livePartners: store.draft.isLive ? store.visiblePartners : []) }
         .task(id: store.resultGeneration) {
             guard store.revealedGeneration != store.resultGeneration else { return }
             store.revealedGeneration = store.resultGeneration
@@ -129,12 +132,12 @@ struct PartnerDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Image(partner.image).resizable().scaledToFill().frame(height: 285).frame(maxWidth: .infinity).clipped().accessibilityHidden(true)
+                PartnerArtwork(partner: partner).frame(height: 285).frame(maxWidth: .infinity).clipped().accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 25) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(partner.name).font(.largeTitle.bold())
                         Text(partner.subtitle).foregroundStyle(.secondary)
-                        SampleBadge()
+                        SampleBadge(isLive: store.draft.isLive)
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("The Connection").font(.title3.weight(.semibold))
@@ -179,7 +182,7 @@ struct RecoveryView: View {
                     if outcome == .noMatches { ProgrammeArt(name: "ProgrammeSearch", height: 160) }
                     else { Image(systemName: "network.slash").font(.largeTitle).foregroundStyle(.secondary).padding(24).accessibilityHidden(true) }
                     Text(outcome == .noMatches ? "No Useful Matches Yet" : "Search Interrupted").font(.title2.weight(.semibold)).multilineTextAlignment(.center)
-                    Text(outcome == .noMatches ? "We couldn’t support a shortlist within \(store.draft.radius) miles.\nTry a wider area or adjust your preferences." : "We couldn’t finish this sample search. Please try again in a moment.")
+                    Text(store.recoveryReason ?? (outcome == .noMatches ? "We couldn’t support a shortlist within \(store.draft.radius) miles.\nTry a wider area or adjust your preferences." : "We couldn’t finish this sample search. Please try again in a moment."))
                         .foregroundStyle(.secondary).multilineTextAlignment(.center)
                     PrimaryAction(title: outcome == .noMatches ? "Edit Search" : "Try Again", id: "recoverSearch") {
                         if outcome == .noMatches { store.path.removeLast() }
@@ -219,7 +222,8 @@ struct PartnerFiltersView: View {
                         store.draft.radius = radius; store.allowedCategories = categories
                         store.draft.selectedIDs.formIntersection(store.visiblePartners.map(\.id))
                         store.persistDraft()
-                        if store.visiblePartners.isEmpty { store.path[store.path.count - 1] = .recovery(.noMatches) }
+                        if store.draft.isLive { store.path[store.path.count - 1] = .research }
+                        else if store.visiblePartners.isEmpty { store.path[store.path.count - 1] = .recovery(.noMatches) }
                         dismiss()
                     }.buttonStyle(.glassProminent).disabled(categories.isEmpty)
                 }

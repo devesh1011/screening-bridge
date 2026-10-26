@@ -1,8 +1,9 @@
 import SwiftUI
 
 struct SampleBadge: View {
+    var isLive = false
     var body: some View {
-        Text("Sample screening")
+        Text(isLive ? "Live research · proposed screening" : "Sample screening")
             .font(.caption).foregroundStyle(.secondary)
             .padding(.horizontal, 8).padding(.vertical, 4)
             .background(.quaternary.opacity(0.6), in: Capsule())
@@ -27,11 +28,27 @@ struct FilmSummary: View {
                 } else if !compact {
                     Text(String(draft.film?.year ?? 2023)).font(.subheadline).foregroundStyle(.secondary)
                 }
-                SampleBadge()
+                SampleBadge(isLive: draft.isLive)
             }
             Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+struct PartnerArtwork: View {
+    let partner: Partner
+    var body: some View {
+        Group {
+            if partner.evidence == nil {
+                Image(partner.image).resizable().scaledToFill()
+            } else {
+                Image(systemName: partner.category == "Bookshop" ? "books.vertical" : partner.category == "Record shop" ? "opticaldisc" : "hands.sparkles")
+                    .font(.largeTitle).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(.secondarySystemGroupedBackground))
+            }
+        }.accessibilityHidden(true)
     }
 }
 

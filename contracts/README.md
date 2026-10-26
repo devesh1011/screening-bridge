@@ -1,6 +1,6 @@
 # Discovery contract v1
 
-This is the agreed application boundary for the native app and the future browser demo. The executable models are in `backend/screening_bridge/contract.py`; the adjacent JSON Schema files are generated from them. No HTTP server or agent loop is implemented in milestone 1.
+This is the agreed application boundary for the native app and the future browser demo. The executable models are in `backend/screening_bridge/contract.py`; the adjacent JSON Schema files are generated from them. Milestone 2 implements the local HTTP/SSE service and bounded agent flow; see `../MILESTONE-2.md` for scope and verification.
 
 ## Request
 
@@ -10,7 +10,7 @@ Film and venue search/selection precede this request. The eventual service must 
 
 ## Events
 
-The proposed milestone-2 transport is `POST /v1/discoveries` returning an SSE stream. Each `data` record is one event JSON object. Event objects carry request UUID, brief revision, mode, increasing sequence number and an offset-aware emission time. The final transport must retain this logical contract even if hosting requires polling.
+The milestone-2 transport is `POST /v1/discoveries` returning an SSE stream. Each `data` record is one event JSON object. Event objects carry request UUID, brief revision, mode, increasing sequence number and an offset-aware emission time. The logical contract also applies if a later host requires polling.
 
 | Event type | Payload / behaviour |
 | --- | --- |
@@ -23,7 +23,7 @@ The proposed milestone-2 transport is `POST /v1/discoveries` returning an SSE st
 
 A finished stream has exactly one terminal event. A connection ending without one is interrupted; the client retains the draft and offers a retry. On local cancellation the client immediately invalidates the request, even if it cannot receive the server's terminal event. It ignores all later events for that request. Events from older brief revisions or a different sample/live mode cannot change current UI state.
 
-The service implementation must scope request IDs to anonymous sessions, bind each ID to the original payload, reject reuse with a different payload, and prevent duplicate paid work on retries. Deadline, cancellation propagation, session scoping, deduplication and actual SSE are milestone-2 work, not features delivered by these data models.
+The local service binds request IDs to a development session and the original payload, rejects changed-payload reuse, and prevents duplicate paid work with SQLite claims. Public anonymous sessions and shared hosting storage remain milestone-3 work. Models alone do not implement these lifecycle behaviours; the local transport does.
 
 ## Durable recommendations
 

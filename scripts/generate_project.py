@@ -3,11 +3,16 @@ from pathlib import Path
 import argparse
 import hashlib
 import json
+import re
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--team', help='Existing Apple development team for physical-device signing')
 args=parser.parse_args()
+existing_project=root/'ScreeningBridge.xcodeproj/project.pbxproj'
+if not args.team and existing_project.exists():
+    match=re.search(r'DEVELOPMENT_TEAM\s*=\s*"?([A-Za-z0-9]+)',existing_project.read_text())
+    if match:args.team=match.group(1)
 objects={}
 def uid(key):return hashlib.sha1(key.encode()).hexdigest()[:24].upper()
 def obj(key,value):objects[uid(key)]=value;return uid(key)
@@ -21,9 +26,15 @@ for name,folder,kind in [('ScreeningBridge','ScreeningBridge','application'),('S
         ref=obj(str(f.relative_to(root)),f'isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = {q(f.name)}; sourceTree = "<group>";')
         files.append(ref);buildfiles.append(obj('build-'+str(f.relative_to(root)),f'isa = PBXBuildFile; fileRef = {ref};'))
     resources=[]
+    for f in sorted((root/folder).glob('*.json')):
+        ref=obj(str(f.relative_to(root)),f'isa = PBXFileReference; lastKnownFileType = text.json; path = {q(f.name)}; sourceTree = "<group>";')
+        files.append(ref);resources.append(obj('resource-'+str(f.relative_to(root)),f'isa = PBXBuildFile; fileRef = {ref};'))
     if kind=='application':
         ref=obj('assets','isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>";')
         files.append(ref);resources.append(obj('assets-build',f'isa = PBXBuildFile; fileRef = {ref};'))
+        if (root/'.local/LiveConfig.json').exists():
+            ref=obj('local-live-config','isa = PBXFileReference; lastKnownFileType = text.json; path = "../.local/LiveConfig.json"; sourceTree = "<group>";')
+            files.append(ref);resources.append(obj('local-live-config-build',f'isa = PBXBuildFile; fileRef = {ref};'))
     groups.append(obj(folder+'-group',f'isa = PBXGroup; path = {q(folder)}; children = {array(files)}; sourceTree = "<group>";'))
     ext='app' if kind=='application' else 'xctest'
     product=obj(name+'-product',f'isa = PBXFileReference; explicitFileType = {q("wrapper.application" if kind=="application" else "wrapper.cfbundle")}; path = {q(name+"."+ext)}; sourceTree = BUILT_PRODUCTS_DIR;')
@@ -34,6 +45,7 @@ for name,folder,kind in [('ScreeningBridge','ScreeningBridge','application'),('S
     for config in ['Debug','Release']:
         settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.devesh.screeningbridge'+('' if kind=='application' else '.'+name),'GENERATE_INFOPLIST_FILE':'YES','SWIFT_VERSION':'5.0','IPHONEOS_DEPLOYMENT_TARGET':'26.0','TARGETED_DEVICE_FAMILY':'1','CODE_SIGN_STYLE':'Automatic','SUPPORTED_PLATFORMS':'iphoneos iphonesimulator','SDKROOT':'iphoneos','SWIFT_OPTIMIZATION_LEVEL':'-Onone' if config=='Debug' else '-O','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'DEBUG' if config=='Debug' else '', 'ENABLE_TESTABILITY':'YES' if config=='Debug' else 'NO'}
         if args.team:settings['DEVELOPMENT_TEAM']=args.team
+        if kind=='application' and (root/'ScreeningBridge/Info.plist').exists():settings['INFOPLIST_FILE']='ScreeningBridge/Info.plist'
         if kind=='application':settings.update({'ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon','INFOPLIST_KEY_CFBundleDisplayName':'Screening Bridge','INFOPLIST_KEY_LSApplicationCategoryType':'public.app-category.productivity','INFOPLIST_KEY_UIApplicationSceneManifest_Generation':'YES','INFOPLIST_KEY_UILaunchScreen_Generation':'YES','INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone':'UIInterfaceOrientationPortrait','ENABLE_PREVIEWS':'YES'})
         elif kind=='bundle.unit-test':settings.update({'TEST_HOST':'$(BUILT_PRODUCTS_DIR)/ScreeningBridge.app/ScreeningBridge','BUNDLE_LOADER':'$(TEST_HOST)'})
         else:settings.update({'TEST_TARGET_NAME':'ScreeningBridge'})

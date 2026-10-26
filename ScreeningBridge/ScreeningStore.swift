@@ -79,10 +79,19 @@ final class ScreeningStore {
     var nextSearchOutcome: SearchOutcome = .ready
     var failNextSave = false
     var slowSave = false
-    var allowedCategories: Set<String> = Set(SampleContent.partners.map(\.category))
+    var liveCatalog: LiveCatalog?
+    var catalogError: String?
+    var recoveryReason: String?
+    var activeRequestID: String?
+    var allowedCategories: Set<String> {
+        get { Set(draft.allowedPartnerCategories ?? SampleContent.partners.map(\.category)) }
+        set { draft.allowedPartnerCategories = newValue.sorted() }
+    }
     @ObservationIgnored let repository: LocalPlanRepository
+    @ObservationIgnored let discoveryService: any DiscoveryServing
 
-    init(repository: LocalPlanRepository = LocalPlanRepository()) {
+    init(repository: LocalPlanRepository = LocalPlanRepository(), discoveryService: any DiscoveryServing = LiveDiscoveryClient()) {
+        self.discoveryService = discoveryService
         let isolated = ProcessInfo.processInfo.arguments.contains("--ui-testing") && repository.directory == LocalPlanRepository().directory
         self.repository = isolated ? LocalPlanRepository(directory: URL.applicationSupportDirectory.appending(path: "ScreeningBridgeUITesting", directoryHint: .isDirectory)) : repository
         do {
@@ -98,10 +107,90 @@ final class ScreeningStore {
     }
 
     var visiblePartners: [Partner] {
-        SampleContent.partners.filter { $0.distanceMiles <= Double(draft.radius) && allowedCategories.contains($0.category) }
+        let partners = draft.isLive ? (hasCurrentResults ? draft.partnerSnapshots ?? [] : []) : SampleContent.partners
+        return partners.filter { $0.distanceMiles <= Double(draft.radius) && allowedCategories.contains($0.category) }
+    }
+
+    var briefFingerprint: String {
+        [draft.film?.id ?? "", draft.cinema, draft.area, String(draft.date.timeIntervalSince1970), String(draft.radius), draft.notes, allowedCategories.sorted().joined(separator: ",")].joined(separator: "\u{1F}")
+    }
+    var hasCurrentResults: Bool { !draft.isLive || draft.researchFingerprint == briefFingerprint }
+    func partner(_ id: String) -> Partner? { (draft.partnerSnapshots ?? (draft.isLive ? [] : SampleContent.partners)).first { $0.id == id } }
+
+    func setDiscoveryMode(_ mode: String) {
+        guard (mode == "live") != draft.isLive else { return }
+        activeRequestID = nil
+        draft = ScreeningDraft()
+        draft.discoveryMode = mode
+        if mode == "live" { draft.cinema = ""; draft.area = "" }
+        catalogError = nil; recoveryReason = nil
+        persistDraft()
+    }
+
+    func loadLiveCatalog() async {
+        do {
+            let catalog = try await discoveryService.catalog()
+            try Task.checkCancellation()
+            liveCatalog = catalog; catalogError = nil
+            if draft.isLive, draft.cinema.isEmpty, let venue = catalog.venues.first {
+                draft.cinema = venue.name; draft.area = venue.address
+                draft.venueTimezone = venue.timezone
+            }
+        } catch is CancellationError { return }
+        catch { catalogError = error.localizedDescription }
+    }
+
+    func runSearch() async {
+        guard draft.isLive else { await runSampleSearch(); return }
+        guard activeRequestID == nil else { return }
+        if liveCatalog == nil { await loadLiveCatalog() }
+        guard let film = liveCatalog?.films.first(where: { $0.entityId == draft.film?.id }), let venue = liveCatalog?.venues.first(where: { $0.name == draft.cinema && $0.address == draft.area }) else {
+            recoveryReason = catalogError ?? "Choose a supported film and venue before researching."
+            if path.last == .research { path[path.count - 1] = .recovery(.interrupted) }
+            return
+        }
+        let id = UUID().uuidString
+        activeRequestID = id
+        defer { if activeRequestID == id { activeRequestID = nil } }
+        draft.briefRevision = (draft.briefRevision ?? 0) + 1
+        let revision = draft.briefRevision!
+        let fingerprint = briefFingerprint
+        let categoryIDs = ["Bookshop": "bookshop", "Record shop": "record_shop", "Ceramics studio": "ceramics_studio"]
+        let request = LiveRequest(requestId: id, briefRevision: revision, film: film, venue: venue, screeningAt: ISO8601DateFormatter().string(from: draft.date), radiusM: Int((Double(draft.radius) * 1609.344).rounded()), categories: allowedCategories.compactMap { categoryIDs[$0] }.sorted(), notes: draft.notes)
+        stage = 0; recoveryReason = nil
+        persistDraft()
+        do {
+            try await discoveryService.discover(request) { [self] event in
+                try Task.checkCancellation()
+                guard activeRequestID == id, briefFingerprint == fingerprint, event.requestId.lowercased() == id.lowercased(), event.briefRevision == revision, path.last == .research else { return }
+                if event.type == "progress" {
+                    stage = ["resolving": 0, "researching": 1, "ranking": 2, "preparing": 3][event.stage ?? ""] ?? stage
+                } else if event.type == "completed" {
+                    guard let rows = event.recommendations, (1...3).contains(rows.count), let sources = event.sources else { throw DiscoveryClientError.invalidResponse }
+                    let partners = try rows.map { try $0.partner(sources: sources) }
+                    guard Set(partners.map(\.id)).count == partners.count, rows.allSatisfy({ $0.culturalSignal.filmEntityId.lowercased() == film.entityId.lowercased() }) else { throw DiscoveryClientError.invalidResponse }
+                    draft.partnerSnapshots = partners
+                    draft.researchWarnings = event.warnings
+                    draft.researchFingerprint = fingerprint
+                    draft.selectedIDs.formIntersection(partners.map(\.id))
+                    resultGeneration = UUID()
+                    persistDraft()
+                    path[path.count - 1] = .partners
+                } else {
+                    recoveryReason = event.message ?? "Research could not finish. Your brief is safe."
+                    path[path.count - 1] = .recovery(event.type == "no_matches" ? .noMatches : .interrupted)
+                }
+            }
+        } catch is CancellationError { return }
+        catch {
+            guard activeRequestID == id, path.last == .research else { return }
+            recoveryReason = error.localizedDescription
+            path[path.count - 1] = .recovery(.interrupted)
+        }
     }
 
     func newScreening() {
+        activeRequestID = nil
         draft = ScreeningDraft()
         saveError = nil
         path = [.film]
@@ -147,7 +236,7 @@ final class ScreeningStore {
     }
 
     func savePlan() async {
-        guard !isSaving, draft.isValid, !draft.selectedIDs.isEmpty else { return }
+        guard !isSaving, draft.isValid, !draft.selectedIDs.isEmpty, hasCurrentResults else { return }
         isSaving = true
         saveError = nil
         defer { isSaving = false }
@@ -159,6 +248,7 @@ final class ScreeningStore {
                 throw CocoaError(.fileWriteUnknown)
             }
             var snapshot = draft
+            if !snapshot.isLive && snapshot.partnerSnapshots == nil { snapshot.partnerSnapshots = SampleContent.partners }
             for partner in snapshot.selectedPartners where snapshot.introductions[partner.id] == nil {
                 snapshot.introductions[partner.id] = snapshot.introduction(for: partner)
             }
@@ -215,7 +305,7 @@ final class ScreeningStore {
     private func configurePreview() {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        if args.contains("--reset-demo-data") {
+        if args.contains("--reset-demo-data") && args.contains("--ui-testing") {
             saved = []; hasRecoverableDraft = false; draft = ScreeningDraft()
             try? repository.savePlans([]); try? repository.clearDraft()
         }

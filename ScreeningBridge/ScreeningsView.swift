@@ -92,7 +92,7 @@ struct ScreeningCard: View {
                 Text(plan.draft.film?.title ?? "Screening").font(.title2.weight(.semibold))
                 Text(plan.draft.cinema).foregroundStyle(.secondary)
                 Text("\(plan.draft.dateLabel) · \(plan.draft.timeLabel)").font(.subheadline).foregroundStyle(.secondary)
-                SampleBadge()
+                SampleBadge(isLive: plan.draft.isLive)
                 Divider().padding(.vertical, 3)
                 HStack {
                     Label("Plan Saved", systemImage: "checkmark.circle.fill").foregroundStyle(.blue)

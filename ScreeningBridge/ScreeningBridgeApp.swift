@@ -33,7 +33,7 @@ struct AppRootView: View {
                     case .research: ResearchView(store: store)
                     case .partners: PartnersView(store: store)
                     case .partner(let id):
-                        if let partner = SampleContent.partner(id) { PartnerDetailView(store: store, partner: partner) }
+                        if let partner = store.partner(id) { PartnerDetailView(store: store, partner: partner) }
                     case .plan: PlanView(store: store)
                     case .recovery(let outcome): RecoveryView(store: store, outcome: outcome)
                     }

@@ -10,7 +10,7 @@ struct Film: Codable, Hashable, Identifiable {
     static let perfectDays = Film(id: "perfect-days-2023", title: "Perfect Days", year: 2023, director: "Wim Wenders", image: "FilmCover")
 }
 
-struct Partner: Identifiable, Hashable {
+struct Partner: Codable, Identifiable, Hashable {
     let id: String
     let name: String
     let category: String
@@ -21,8 +21,31 @@ struct Partner: Identifiable, Hashable {
     let connection: String
     let idea: String
     let activity: String
+    var evidence: PartnerEvidence? = nil
 
-    var subtitle: String { "\(category) · \(walkingMinutes) min walk" }
+    var subtitle: String {
+        evidence == nil ? "\(category) · \(walkingMinutes) min walk" : "\(category) · \(distanceMiles.formatted(.number.precision(.fractionLength(1)))) mi straight-line"
+    }
+}
+
+struct PartnerEvidence: Codable, Hashable {
+    var facts: [String]
+    var sources: [EvidenceSource]
+    var researchedAt: Date
+    var qlooRank: Int
+    var qlooAffinity: Double
+    var qlooQueryID: String
+    var filmEntityID: String
+    var candidatePoolIDs: [String]
+    var introduction: String
+    var stillToConfirm: [String]
+}
+
+struct EvidenceSource: Codable, Hashable, Identifiable {
+    var id: String
+    var title: String
+    var url: URL
+    var retrievedAt: Date
 }
 
 enum SampleContent {
@@ -54,14 +77,34 @@ struct ScreeningDraft: Codable, Equatable, Identifiable {
     var selectedIDs: Set<String> = []
     var introductions: [String: String] = [:]
     var completedSteps: Set<String> = []
+    // Optional fields preserve compatibility with earlier ID-only sample archives.
+    var discoveryMode: String?
+    var partnerSnapshots: [Partner]?
+    var researchWarnings: [String]?
+    var researchFingerprint: String?
+    var briefRevision: Int?
+    var allowedPartnerCategories: [String]?
+    var venueTimezone: String?
+
+    var isLive: Bool { discoveryMode == "live" }
 
     var isValid: Bool { film != nil && !cinema.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !area.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-    var selectedPartners: [Partner] { SampleContent.partners.filter { selectedIDs.contains($0.id) } }
-    var dateLabel: String { date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)) }
-    var timeLabel: String { date.formatted(date: .omitted, time: .shortened) }
+    var selectedPartners: [Partner] {
+        (partnerSnapshots ?? (isLive ? [] : SampleContent.partners)).filter { selectedIDs.contains($0.id) }
+    }
+    var dateLabel: String {
+        var format = Date.FormatStyle.dateTime.weekday(.abbreviated).day().month(.abbreviated)
+        format.timeZone = TimeZone(identifier: venueTimezone ?? "") ?? .current
+        return date.formatted(format)
+    }
+    var timeLabel: String {
+        var format = Date.FormatStyle(date: .omitted, time: .shortened)
+        format.timeZone = TimeZone(identifier: venueTimezone ?? "") ?? .current
+        return date.formatted(format)
+    }
 
     func introduction(for partner: Partner) -> String {
-        introductions[partner.id] ?? "Hello, we’re planning a screening of \(film?.title ?? "the film") at \(cinema) on \(date.formatted(.dateTime.day().month(.wide))). Would you be open to discussing \(partner.id == "books" ? "a short reading before the film" : partner.id == "records" ? "a listening session before the film" : "a small making session alongside the film")? We can work out the format together."
+        introductions[partner.id] ?? partner.evidence?.introduction ?? "Hello, we’re planning a screening of \(film?.title ?? "the film") at \(cinema) on \(date.formatted(.dateTime.day().month(.wide))). Would you be open to discussing \(partner.id == "books" ? "a short reading before the film" : partner.id == "records" ? "a listening session before the film" : "a small making session alongside the film")? We can work out the format together."
     }
 }
 

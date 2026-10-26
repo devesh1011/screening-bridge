@@ -36,6 +36,22 @@ final class LocalPlanRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.loadPlans().count, 1)
     }
 
+    func testLivePartnerAndEvidenceSurviveReloadWithoutSampleLookup() throws {
+        var draft = ScreeningDraft()
+        draft.discoveryMode = "live"
+        draft.film = .perfectDays
+        let partner = Partner(id: "real-partner", name: "A Real Bookshop", category: "Bookshop", image: "", walkingMinutes: 0, distanceMiles: 0.6, rationale: "Discuss a reading.", connection: "A proposed connection.", idea: "A short reading.", activity: "Reading + screening")
+        draft.partnerSnapshots = [partner]
+        draft.selectedIDs = [partner.id]
+        draft.introductions[partner.id] = "My edited introduction."
+        draft.researchWarnings = ["Availability is unconfirmed."]
+        try repository.savePlans([SavedScreening(draft: draft, savedAt: Date())])
+        let restored = try LocalPlanRepository(directory: directory).loadPlans()[0].draft
+        XCTAssertEqual(restored.selectedPartners.map(\.name), ["A Real Bookshop"])
+        XCTAssertEqual(restored.introduction(for: restored.selectedPartners[0]), "My edited introduction.")
+        XCTAssertEqual(restored.researchWarnings, ["Availability is unconfirmed."])
+    }
+
     func testCorruptArchiveIsReportedAndPreserved() throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let file = directory.appending(path: "plans.json")

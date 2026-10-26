@@ -3,6 +3,7 @@ import SwiftUI
 struct PreferencesView: View {
     @AppStorage("hapticsEnabled") private var haptics = true
     @AppStorage("appearance") private var appearance = AppAppearance.system.rawValue
+    @State private var backendURL = LiveConfiguration.current.backendURL
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
@@ -13,14 +14,21 @@ struct PreferencesView: View {
                 Section("Appearance") {
                     Picker("Appearance", selection: $appearance) { ForEach(AppAppearance.allCases) { Text($0.rawValue).tag($0.rawValue) } }
                 }
-                Section("About This Preview") {
+                Section("About Screening Bridge") {
                     Text("Screening Bridge").font(.headline)
-                    Text("A native interface with sample film and partner data. Plans and drafts are saved on this device. Nothing is sent automatically.").font(.subheadline).foregroundStyle(.secondary)
+                    Text("Choose Sample for an offline preview or Live for the Brooklyn research demo. Plans, evidence and edited introductions are saved on this device. Nothing is sent automatically.").font(.subheadline).foregroundStyle(.secondary)
                 }
+                #if DEBUG
+                Section("Development Connection") {
+                    TextField("Backend URL", text: $backendURL).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                    Text(LiveConfiguration.current.accessToken.isEmpty ? "Live access is not configured in this build." : "Development access is configured. Your provider keys stay on the server.").font(.footnote).foregroundStyle(.secondary)
+                }
+                #endif
             }
             .navigationTitle("Preferences").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close Preferences", systemImage: "xmark") { dismiss() } } }
         }.presentationDetents([.medium, .large]).presentationDragIndicator(.visible)
+            .onDisappear { UserDefaults.standard.set(backendURL.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "backendURL") }
     }
 }
 

@@ -2,10 +2,11 @@
 
 Screening Bridge helps independent cinemas explore local collaborations for an already-chosen film. Qloo provides cultural ranking; public sources establish partner identity and activities; the operator reviews proposals and edits outreach drafts before saving a plan. Nothing sends messages automatically.
 
-**Current public milestone:** live Qloo coverage probe and executable discovery contract. A native SwiftUI sample prototype exists in the development workspace; its source and artwork will be packaged for the public release in a later milestone. The OpenAI agent, connected native workflow and hosted browser demo are not yet delivered.
+**Current implementation:** native SwiftUI app with separate sample/live modes, an authenticated local discovery backend, bounded OpenAI web research and Qloo tool calling, cited partner snapshots and local plan persistence. The live starter area is deliberately limited to Nitehawk Williamsburg and the verified candidate catalogue. The hosted browser demo and public live API are milestone-3 work.
 
 - [Implementation spec](SPEC.md)
 - [Milestone 1 findings and sourced example](MILESTONE-1.md)
+- [Milestone 2 setup and verification](MILESTONE-2.md)
 - [Discovery contract](contracts/README.md)
 - [Project issue tracker](https://github.com/devesh1011/screening-bridge/issues)
 
@@ -17,6 +18,7 @@ Requires Python 3.13+ and uv.
 cd backend
 uv sync
 uv run pytest -q
+uv run mypy screening_bridge --ignore-missing-imports
 uv run python -m screening_bridge.export_contract --check
 ```
 
@@ -37,3 +39,7 @@ Results are written to a timestamped, ignored `.local/coverage` JSON file with o
 All eight candidate identities in the expanded Brooklyn pool resolved, but only three were scored. The three had the same order for Perfect Days and School of Rock. This demonstrates a usable data path with partial coverage, not superior recommendations or ticket-sales uplift. The example screenings are hypothetical and imply no affiliation with the named businesses.
 
 Original code is provided under the [MIT license](LICENSE). Third-party services, linked content and provider data retain their respective terms; the software license does not grant redistribution rights to those materials.
+
+## Native live development
+
+See the milestone-2 guide for the local backend and device build. Provider credentials stay in the backend environment. The ignored development configuration contains only the backend address and a scoped development-access token. A public [health endpoint](https://screening-bridge-api.vercel.app/health) and [starter catalogue](https://screening-bridge-api.vercel.app/v1/catalog) verify hosting; paid discovery is disabled on that deployment.
